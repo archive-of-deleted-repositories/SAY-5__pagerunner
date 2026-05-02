@@ -10,6 +10,10 @@ module.exports = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
+        // Keep ts-jest fast and free of cross-package type-resolution surprises
+        // (those run under `pnpm typecheck`); jest only needs the JS output.
+        isolatedModules: true,
+        diagnostics: false,
         tsconfig: {
           module: 'commonjs',
           target: 'ES2022',

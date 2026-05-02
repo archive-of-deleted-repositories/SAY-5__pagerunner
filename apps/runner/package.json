@@ -1,0 +1,22 @@
+{
+  "name": "@pagerunner/runner",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "replay": "tsx src/cli/replay.ts"
+  },
+  "dependencies": {
+    "@pagerunner/agent-tools": "workspace:*",
+    "@pagerunner/db": "workspace:*",
+    "@pagerunner/shared": "workspace:*",
+    "bullmq": "^5.10.4",
+    "ioredis": "^5.4.1",
+    "playwright": "^1.45.1",
+    "zod": "^3.23.8"
+  }
+}

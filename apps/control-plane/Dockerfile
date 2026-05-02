@@ -1,6 +1,6 @@
 FROM node:20-bookworm-slim AS base
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN npm install -g pnpm@10.33.0
 
 FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json ./

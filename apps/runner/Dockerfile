@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/playwright:v1.45.1-jammy AS base
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN npm install -g pnpm@10.33.0
 
 FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json ./

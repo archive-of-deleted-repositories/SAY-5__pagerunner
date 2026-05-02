@@ -1,0 +1,13 @@
+{
+  "suite": "golden_v1",
+  "id": "login",
+  "name": "login then read profile",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/login" } },
+    { "tool": "type", "input": { "selector": "#user", "text": "alice" } },
+    { "tool": "type", "input": { "selector": "#pw", "text": "hunter2" } },
+    { "tool": "click", "input": { "selector": "#submit" } },
+    { "tool": "extract", "input": { "selector": "#profile-name" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

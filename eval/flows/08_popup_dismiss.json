@@ -1,0 +1,12 @@
+{
+  "suite": "golden_v1",
+  "id": "popup_dismiss",
+  "name": "dismiss popup then proceed",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/with-popup" } },
+    { "tool": "click", "input": { "selector": "#dismiss-popup" } },
+    { "tool": "click", "input": { "selector": "#cta" } },
+    { "tool": "extract", "input": { "selector": "#headline" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "title": "PageRunner",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "title": "Run duration P50/P95",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(run_duration_seconds_bucket[5m])) by (le))" },
+        { "expr": "histogram_quantile(0.95, sum(rate(run_duration_seconds_bucket[5m])) by (le))" }
+      ]
+    },
+    {
+      "title": "Step duration P95 by tool",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(step_duration_seconds_bucket[5m])) by (le, tool))"
+        }
+      ]
+    },
+    {
+      "title": "Queue depth",
+      "type": "timeseries",
+      "targets": [{ "expr": "queue_depth" }]
+    },
+    {
+      "title": "DLQ entries",
+      "type": "stat",
+      "targets": [{ "expr": "sum(dlq_total)" }]
+    },
+    {
+      "title": "Cost burn $/h by tenant",
+      "type": "timeseries",
+      "targets": [{ "expr": "sum(rate(cost_usd_total[1h])) by (tenant)" }]
+    },
+    {
+      "title": "Golden flow success rate (rolling 24h)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(eval_results_success_total[24h])) / sum(rate(eval_results_total[24h]))"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "suite": "golden_v1",
+  "id": "form_validation",
+  "name": "multi-step form with validation",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/form" } },
+    { "tool": "type", "input": { "selector": "#email", "text": "alice@example.com" } },
+    { "tool": "click", "input": { "selector": "#next" } },
+    { "tool": "type", "input": { "selector": "#zip", "text": "94110" } },
+    { "tool": "click", "input": { "selector": "#submit" } },
+    { "tool": "extract", "input": { "selector": ".success" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

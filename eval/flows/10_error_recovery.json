@@ -1,0 +1,12 @@
+{
+  "suite": "golden_v1",
+  "id": "error_recovery",
+  "name": "step retries on flaky selector then succeeds",
+  "setup": { "failFirst": ["#flaky"] },
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/flaky" } },
+    { "tool": "click", "input": { "selector": "#flaky" } },
+    { "tool": "extract", "input": { "selector": "#result" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

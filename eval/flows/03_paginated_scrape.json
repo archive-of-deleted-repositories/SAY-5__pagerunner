@@ -1,0 +1,14 @@
+{
+  "suite": "golden_v1",
+  "id": "paginated_scrape",
+  "name": "paginated scrape three pages",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/list?p=1" } },
+    { "tool": "extract", "input": { "selector": ".item", "multiple": true } },
+    { "tool": "click", "input": { "selector": "a[rel=next]" } },
+    { "tool": "extract", "input": { "selector": ".item", "multiple": true } },
+    { "tool": "click", "input": { "selector": "a[rel=next]" } },
+    { "tool": "extract", "input": { "selector": ".item", "multiple": true } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

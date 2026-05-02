@@ -1,0 +1,12 @@
+{
+  "suite": "golden_v1",
+  "id": "search_extract",
+  "name": "search and extract first result",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/search" } },
+    { "tool": "type", "input": { "selector": "#q", "text": "playwright" } },
+    { "tool": "click", "input": { "selector": "#go" } },
+    { "tool": "extract", "input": { "selector": ".result:first-child a" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

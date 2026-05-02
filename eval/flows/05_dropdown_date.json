@@ -1,0 +1,14 @@
+{
+  "suite": "golden_v1",
+  "id": "dropdown_date",
+  "name": "dropdown plus date picker",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/booking" } },
+    { "tool": "click", "input": { "selector": "#country-dropdown" } },
+    { "tool": "click", "input": { "selector": "li[data-cc=us]" } },
+    { "tool": "click", "input": { "selector": "#date" } },
+    { "tool": "click", "input": { "selector": ".day[data-d=2026-06-15]" } },
+    { "tool": "click", "input": { "selector": "#confirm" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

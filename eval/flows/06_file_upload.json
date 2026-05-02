@@ -1,0 +1,12 @@
+{
+  "suite": "golden_v1",
+  "id": "file_upload",
+  "name": "file upload with progress wait",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/upload" } },
+    { "tool": "click", "input": { "selector": "#file-trigger" } },
+    { "tool": "wait", "input": { "selector": "#progress[data-state=done]" } },
+    { "tool": "extract", "input": { "selector": "#file-id" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

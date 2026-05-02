@@ -1,0 +1,13 @@
+{
+  "suite": "golden_v1",
+  "id": "infinite_scroll",
+  "name": "infinite scroll until target",
+  "script": [
+    { "tool": "navigate", "input": { "url": "http://mock.local/feed" } },
+    { "tool": "wait", "input": { "ms": 200 } },
+    { "tool": "extract", "input": { "selector": ".card", "multiple": true } },
+    { "tool": "wait", "input": { "ms": 200 } },
+    { "tool": "extract", "input": { "selector": ".card[data-target=true]" } },
+    { "tool": "finish", "input": { "result": { "ok": true } } }
+  ]
+}

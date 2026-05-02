@@ -101,11 +101,11 @@ jobs:
           context: .
           file: apps/control-plane/Dockerfile
           push: false
-          tags: ghcr.io/${{ github.repository_owner }}/pagerunner-control-plane:sha-${{ github.sha }}
+          tags: ghcr.io/say-5/pagerunner-control-plane:sha-${{ github.sha }}
       - name: build runner
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/runner/Dockerfile
           push: false
-          tags: ghcr.io/${{ github.repository_owner }}/pagerunner-runner:sha-${{ github.sha }}
+          tags: ghcr.io/say-5/pagerunner-runner:sha-${{ github.sha }}

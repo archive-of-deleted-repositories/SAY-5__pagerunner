@@ -20,3 +20,6 @@ test-results/
 tmp/
 .eslintcache
 eval/runs/*.json
+tests/fixtures/**/*.js
+tests/fixtures/**/*.d.ts
+tests/fixtures/**/*.map

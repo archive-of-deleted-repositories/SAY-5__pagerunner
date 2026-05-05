@@ -48,7 +48,17 @@ CREATE TABLE runs_2026_06 PARTITION OF runs FOR VALUES FROM ('2026-06-01') TO ('
 CREATE TABLE runs_2026_07 PARTITION OF runs FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
 
 CREATE INDEX runs_tenant_status_idx ON runs (tenant_id, status, created_at DESC);
-CREATE UNIQUE INDEX runs_idempotency_key_uniq ON runs (tenant_id, idempotency_key)
+-- Partition-local unique guard for idempotency: postgres requires a unique
+-- index on a partitioned table to include the partition key, so the global
+-- (tenant, key) constraint lives on each partition. The store does an
+-- additional app-layer pre-flight lookup to catch cross-month duplicates.
+CREATE UNIQUE INDEX runs_idem_default_uniq ON runs_default (tenant_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX runs_idem_2026_05_uniq ON runs_2026_05 (tenant_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX runs_idem_2026_06_uniq ON runs_2026_06 (tenant_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX runs_idem_2026_07_uniq ON runs_2026_07 (tenant_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;
 
 CREATE TABLE steps (

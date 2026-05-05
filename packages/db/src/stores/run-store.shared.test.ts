@@ -45,7 +45,7 @@ const backends: Backend[] = PG_URL ? [memBackend, buildPgBackend(PG_URL)] : [mem
 
 describe.each(backends)('RunStore [$name]', ({ build }) => {
   let store: RunStoreLike;
-  let cleanup: () => Promise<void>;
+  let cleanup: () => Promise<void> = async () => undefined;
 
   beforeEach(async () => {
     const handle = await build();
@@ -55,6 +55,7 @@ describe.each(backends)('RunStore [$name]', ({ build }) => {
 
   afterEach(async () => {
     await cleanup();
+    cleanup = async () => undefined;
   });
 
   it('creates and gets a run', async () => {

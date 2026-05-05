@@ -56,6 +56,21 @@ export class PgRunStore implements RunStoreLike {
     const now = new Date();
     await this.ensurePartition(now);
 
+    // Idempotency at the app layer: look first, insert if missing. The
+    // partitioned `runs` table can't carry a global unique index on
+    // (tenant, key) without also including the partition column, so the
+    // pre-flight read keeps the contract honest. A racing inserter could
+    // still collide; the in-partition unique index catches that case.
+    if (input.idempotencyKey) {
+      const existing = await this.db
+        .select()
+        .from(runs)
+        .where(and(eq(runs.tenantId, tenantId), eq(runs.idempotencyKey, input.idempotencyKey)))
+        .limit(1);
+      const first = existing[0];
+      if (first) return rowToStoredRun(first);
+    }
+
     const id = newRunId();
     const row = {
       id,
@@ -74,7 +89,8 @@ export class PgRunStore implements RunStoreLike {
       if (!inserted) throw new Error('insert returned no row');
       return rowToStoredRun(inserted);
     } catch (err) {
-      // Postgres unique violation when (tenant_id, idempotency_key) collides.
+      // Postgres unique violation when racing inserters land in the same
+      // partition; fall back to the existing row.
       const code = (err as { code?: string }).code;
       if (code === '23505' && input.idempotencyKey) {
         const existing = await this.db

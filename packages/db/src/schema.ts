@@ -6,7 +6,6 @@ import {
   jsonb,
   numeric,
   pgEnum,
-  uniqueIndex,
   index,
   primaryKey,
 } from 'drizzle-orm/pg-core';
@@ -78,7 +77,9 @@ export const runs = pgTable(
   },
   (t) => ({
     byTenantStatus: index('runs_tenant_status_idx').on(t.tenantId, t.status, t.createdAt),
-    uniqIdem: uniqueIndex('runs_idempotency_key_uniq').on(t.tenantId, t.idempotencyKey),
+    // Idempotency uniqueness is enforced per-partition by the migration. The
+    // schema doesn't model partition-local indexes; the comment lives in the
+    // migration alongside the partition DDL.
   }),
 );
 

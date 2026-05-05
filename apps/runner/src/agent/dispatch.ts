@@ -189,6 +189,9 @@ export class Dispatcher {
     }
 
     const ac = new AbortController();
+    // Register the abort handle BEFORE flipping status to 'running' so an
+    // observer that sees the status change can publish a cancel and have it
+    // delivered to a known controller rather than a missing entry.
     this.inflight.set(run.id, ac);
     try {
       const domain = run.targetDomain ?? flow.targetDomain ?? 'default';

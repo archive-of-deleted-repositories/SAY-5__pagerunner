@@ -1,0 +1,129 @@
+{
+  "generatedAt": "2026-05-05T23:15:46.487Z",
+  "provider": "fake",
+  "model": "fake-llm",
+  "runsPerFlow": 100,
+  "totalRuns": 1000,
+  "concurrency": 8,
+  "turnaroundMs": {
+    "p50": 0.1,
+    "p95": 0.36,
+    "p99": 0.68,
+    "p999": 1.36,
+    "max": 1.6
+  },
+  "perFlow": [
+    {
+      "flowId": "conditional_branch",
+      "flowName": "branch on extracted value",
+      "meanSteps": 5,
+      "successRate": 1
+    },
+    {
+      "flowId": "dropdown_date",
+      "flowName": "dropdown plus date picker",
+      "meanSteps": 7,
+      "successRate": 1
+    },
+    {
+      "flowId": "error_recovery",
+      "flowName": "step retries on flaky selector then succeeds",
+      "meanSteps": 4,
+      "successRate": 1
+    },
+    {
+      "flowId": "file_upload",
+      "flowName": "file upload with progress wait",
+      "meanSteps": 5,
+      "successRate": 1
+    },
+    {
+      "flowId": "form_validation",
+      "flowName": "multi-step form with validation",
+      "meanSteps": 7,
+      "successRate": 1
+    },
+    {
+      "flowId": "infinite_scroll",
+      "flowName": "infinite scroll until target",
+      "meanSteps": 6,
+      "successRate": 1
+    },
+    {
+      "flowId": "login",
+      "flowName": "login then read profile",
+      "meanSteps": 6,
+      "successRate": 1
+    },
+    {
+      "flowId": "paginated_scrape",
+      "flowName": "paginated scrape three pages",
+      "meanSteps": 7,
+      "successRate": 1
+    },
+    {
+      "flowId": "popup_dismiss",
+      "flowName": "dismiss popup then proceed",
+      "meanSteps": 5,
+      "successRate": 1
+    },
+    {
+      "flowId": "search_extract",
+      "flowName": "search and extract first result",
+      "meanSteps": 5,
+      "successRate": 1
+    }
+  ],
+  "perTool": [
+    {
+      "tool": "click",
+      "p50": 0,
+      "p95": 0,
+      "samples": 1600
+    },
+    {
+      "tool": "extract",
+      "p50": 0,
+      "p95": 0,
+      "samples": 1300
+    },
+    {
+      "tool": "finish",
+      "p50": 0,
+      "p95": 0,
+      "samples": 1000
+    },
+    {
+      "tool": "navigate",
+      "p50": 0,
+      "p95": 0,
+      "samples": 1000
+    },
+    {
+      "tool": "type",
+      "p50": 0,
+      "p95": 0,
+      "samples": 500
+    },
+    {
+      "tool": "wait",
+      "p50": 0,
+      "p95": 0,
+      "samples": 300
+    }
+  ],
+  "replayDeterminism": {
+    "score": 1,
+    "samples": 50
+  },
+  "simulatedCost": {
+    "meanPerRunUsd": 0.0057,
+    "p95PerRunUsd": 0.007
+  },
+  "failureBreakdown": {
+    "succeeded": 1000,
+    "budgetExceeded": 0,
+    "toolFailed": 0,
+    "infraDlq": 0
+  }
+}

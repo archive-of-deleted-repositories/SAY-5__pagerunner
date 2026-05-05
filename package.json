@@ -17,6 +17,8 @@
     "test:cov": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js --runInBand --coverage --forceExit",
     "eval": "tsx eval/cli.ts",
     "bench-eval": "tsx eval/bench.ts",
+    "bench": "tsx bench/bench.ts",
+    "bench:cheap": "tsx bench/bench.ts --provider anthropic --model claude-haiku",
     "migrate": "tsx packages/db/src/migrate.ts",
     "seed": "tsx packages/db/src/seed.ts",
     "prepare": "husky || true"

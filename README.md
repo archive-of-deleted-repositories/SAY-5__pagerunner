@@ -33,6 +33,24 @@ Hermetic suite results — loop correctness only. Source artifact: [`eval/baseli
 
 Live agent runs against the mock fastify sites are gated behind `ANTHROPIC_API_KEY`. The hermetic numbers above remain the always-on regression signal.
 
+## Performance
+
+Numbers below are from `pnpm bench` — 100 runs of each of the 10 golden flows (1000 total) on an M-series Mac, FakeLLMProvider against the in-process mock executor, 8 in-process workers. Source artifact: [`bench/results/2026-05-05T23-15-46-487Z.json`](./bench/results/2026-05-05T23-15-46-487Z.json). Methodology in [`bench/README.md`](./bench/README.md).
+
+| Metric                               | Value     |
+| ------------------------------------ | --------- |
+| Run turnaround P50                   | 0.10 ms   |
+| Run turnaround P95                   | 0.36 ms   |
+| Run turnaround P99                   | 0.68 ms   |
+| Run turnaround P999                  | 1.36 ms   |
+| Run turnaround max                   | 1.60 ms   |
+| Replay determinism (50 replays)      | 1.000     |
+| Simulated cost per run (mean)        | $0.005700 |
+| Simulated cost per run (P95)         | $0.007000 |
+| Failures (budget / tool / infra DLQ) | 0 / 0 / 0 |
+
+Read these as the loop+executor overhead floor — what the dispatcher adds on top of the model call. **Live runs are dominated by Anthropic latency** (1-3s per step at Sonnet 4.7) and **Playwright tool execution** (50-500ms per browser action). FakeLLM cost numbers are deterministic per scripted tool sequence; they exercise the cost-tracking code path but are not predictive of live spend. To run live: `ANTHROPIC_API_KEY=sk-... pnpm bench:cheap`.
+
 ## What this studies
 
 - Agent loops with hard step / token / wall-clock / cost budgets and how those budgets compose with per-step retries.

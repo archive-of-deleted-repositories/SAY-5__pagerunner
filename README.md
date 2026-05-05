@@ -2,6 +2,17 @@
 
 Browser agent orchestration platform: an HTTP control plane accepts flow definitions and run requests, a worker pool drives Playwright browsers through tool-using agent loops with bounded budgets, and a deterministic replay path lets failed runs be re-executed against captured DOM snapshots. Built to study how agent loops behave when subjected to backpressure, retries, partial-failure preservation, and golden-flow regression gates.
 
+## What's wired
+
+- Agent loop with hard step / token / wall-clock / cost budgets, per-step retries, and cooperative cancellation. ✅
+- Golden-flow regression suite (10 flows, fake provider, scripted DOM). ✅
+- Anthropic provider (`@anthropic-ai/sdk`, typed errors, abort propagation, no in-provider retries). ✅
+- Playwright executor (one BrowserContext per run, DOM/screenshot/console artifacts per step). ✅
+- BullMQ → Anthropic → Playwright dispatcher with per-tenant Redis semaphores, per-domain token buckets, Redis pub/sub cancellation, and DLQ classification. ✅
+- Drizzle-backed `RunStore` and `FlowStore` alongside the in-memory variants used in unit tests. ✅
+- S3-compatible artifact uploader (gzipped DOM, PNG screenshot, JSONL console). ✅
+- Replay CLI against captured DOM traces. ✅
+
 ## Golden-flow results (`golden_v1`, fake provider)
 
 | flow_name                                    | success_rate | average_steps_to_success | replay_determinism_score |
@@ -18,7 +29,9 @@ Browser agent orchestration platform: an HTTP control plane accepts flow definit
 | search and extract first result              | 1.00         | 5                        | 1.00                     |
 | **suite (10 flows)**                         | **1.00**     | **5.7**                  | **1.00**                 |
 
-Hermetic suite results — loop correctness only. Live-agent benchmarks pending dispatcher work (see [ROADMAP.md](./ROADMAP.md)). Source artifact: [`eval/baselines/golden_v1_fake.json`](./eval/baselines/golden_v1_fake.json). Regenerate with `pnpm bench-eval`.
+Hermetic suite results — loop correctness only. Source artifact: [`eval/baselines/golden_v1_fake.json`](./eval/baselines/golden_v1_fake.json). Regenerate with `pnpm bench-eval`.
+
+Live agent runs against the mock fastify sites are gated behind `ANTHROPIC_API_KEY`. The hermetic numbers above remain the always-on regression signal.
 
 ## What this studies
 
@@ -36,7 +49,7 @@ Hermetic suite results — loop correctness only. Live-agent benchmarks pending 
 | `apps/admin`           | Next.js 14 dashboard (single page; reads recent runs).                                                          |
 | `packages/sdk`         | Typed TS client + SSE wrapper with `Last-Event-ID` resume.                                                      |
 | `packages/agent-tools` | Zod schemas for `navigate`, `click`, `type`, `extract`, `wait`, `finish`, exported as both Zod and JSON Schema. |
-| `packages/db`          | Drizzle schema, SQL migrations, seed script.                                                                    |
+| `packages/db`          | Drizzle schema, SQL migrations, in-memory and Postgres-backed stores.                                           |
 | `packages/shared`      | Errors, ids, structured logger, OTel span helper.                                                               |
 | `eval/`                | Golden flow definitions and the eval CLI.                                                                       |
 | `tests/`               | Unit tests; integration fixtures live under `tests/fixtures/sites`.                                             |
@@ -60,15 +73,15 @@ Hermetic suite results — loop correctness only. Live-agent benchmarks pending 
    ┌────────────────────────────────────────────────────────┐
    │  runner (BullMQ worker)                                 │
    │   ┌────────────┐  ┌────────────┐  ┌──────────────────┐ │
-   │   │ TokenBucket│  │ AgentLoop  │  │ Playwright/      │ │
-   │   │ per domain │─▶│ budgets +  │─▶│ ScriptedExecutor │ │
+   │   │ TokenBucket│  │ AgentLoop  │  │ Playwright       │ │
+   │   │ per domain │─▶│ budgets +  │─▶│ Executor         │ │
    │   └────────────┘  │ retries    │  └──────┬───────────┘ │
    │                   └─────┬──────┘         │             │
    │                         ▼                ▼             │
    │                   ┌──────────┐    ┌────────────┐       │
-   │                   │ LLM (    │    │ S3/MinIO   │       │
-   │                   │ Anthropic│    │ artifacts  │       │
-   │                   │ or Fake) │    └────────────┘       │
+   │                   │ Anthropic│    │ S3/MinIO   │       │
+   │                   │ provider │    │ artifacts  │       │
+   │                   │ (or Fake)│    └────────────┘       │
    │                   └──────────┘                         │
    └────────────────────────────────────────────────────────┘
                          │
@@ -80,42 +93,30 @@ Hermetic suite results — loop correctness only. Live-agent benchmarks pending 
                    └──────────────┘
 ```
 
-## Quickstart
+## How to run
 
-Requires Node 20, pnpm 10, and (for integration paths) Docker.
+### (a) Hermetic — no API key needed
+
+The agent loop, executor, and store contracts all run against `FakeLLMProvider` and `ScriptedExecutor`. CI uses this path; locals can run it the same way.
 
 ```sh
 pnpm install
 pnpm typecheck
 pnpm test
-pnpm eval run --suite golden_v1 --limit 3
+pnpm eval run --suite golden_v1 --provider fake
 ```
 
-Bring up the local stack:
+### (b) Live — requires `ANTHROPIC_API_KEY`
+
+The dispatcher drives a real Chromium against the mock fastify sites under `tests/fixtures/sites/`. No real-internet sites — that opens evasion-test territory we don't want.
 
 ```sh
-docker compose up -d postgres redis minio
-pnpm migrate
-pnpm seed
-pnpm --filter @pagerunner/control-plane dev
+export ANTHROPIC_API_KEY=sk-...
+pnpm exec playwright install --with-deps chromium
+pnpm dispatcher start
 ```
 
-Drive a flow via the SDK:
-
-```ts
-import { PageRunnerClient } from '@pagerunner/sdk';
-const c = new PageRunnerClient({ baseUrl: 'http://localhost:3000' });
-const flow = await c.createFlow({
-  name: 'demo',
-  dag: {
-    nodes: [
-      { id: 'n', tool: 'navigate', next: 'f' },
-      { id: 'f', tool: 'finish' },
-    ],
-  },
-});
-const run = await c.createRun({ flowId: flow.id, idempotencyKey: 'demo-1' });
-```
+The control-plane API enqueues runs onto the `runs` BullMQ queue; the dispatcher picks them up, applies per-tenant concurrency caps and per-domain rate limits, then runs the loop. Artifacts land in S3 (or MinIO for local).
 
 ## Reproducibility
 
@@ -145,40 +146,26 @@ These are targets the architecture is laid out to hit; numbers are not yet measu
 | Replay determinism on cached DOM      | ≥ 98%                    |
 | Step budget enforcement               | hard cap, never exceeded |
 
-Live measurements land with the dispatcher; see the section below.
-
-## Live eval (BYOK + dispatcher)
-
-The numbers in the results table at the top come from the fake provider and the scripted executor. They prove the loop, not the model. To run the live path against the same mock sites once the BullMQ → Anthropic → Playwright dispatcher ships (tracked in [ROADMAP.md](./ROADMAP.md)):
-
-```sh
-export ANTHROPIC_API_KEY=sk-...
-pnpm exec playwright install --with-deps chromium
-pnpm eval run --suite golden_v1 --provider anthropic --output eval/runs/live.json
-```
-
-The `--provider anthropic` path is not wired yet; the CLI exits with a clear error today. When the dispatcher lands, that command will boot the mock-site server under `tests/fixtures/sites/`, drive a real browser through the agent loop with a real model, and write an artifact alongside the hermetic baseline so the two are directly comparable.
-
 ## Tests
 
-- Unit: token-bucket math, DAG validator (cycles, unreachable, branches), retry policy decision table, idempotency, agent-loop budgets, SDK round-trip against a transient NestJS instance, SSE event-bus replay via `Last-Event-ID`.
-- Integration (gated on `RUN_INTEGRATION=1`, requires Docker): full Playwright run against the local mock fastify server, replay determinism, cancellation propagation.
+- Unit: token-bucket math, DAG validator (cycles, unreachable, branches), retry policy decision table, idempotency, agent-loop budgets, SDK round-trip against a transient NestJS instance, SSE event-bus replay via `Last-Event-ID`, Anthropic provider against a mocked `fetch`.
+- Integration (run by CI against postgres + redis + MinIO services): Drizzle-backed RunStore, BullMQ dispatcher end-to-end with `FakeLLMProvider`, S3 artifact upload round-trip, Playwright executor against the local mock site.
+- Gated live: Anthropic provider + Playwright executor end-to-end run against the mock site, skipped when `ANTHROPIC_API_KEY` is unset.
 - Coverage gate: 80% lines / statements in CI.
 
-Run them with `pnpm test` (unit) or `RUN_INTEGRATION=1 pnpm test` (full).
+Run them with `pnpm test`.
 
 ## What this is not
 
 - Not a hosted service. There is no auth layer, billing, or multi-region story.
-- Not an evaluation framework for the underlying model. The CI eval uses a deterministic fake to catch loop regressions; live-model evaluation is a BYOK path documented but unstaffed.
+- Not an evaluation framework for the underlying model. The CI eval uses a deterministic fake to catch loop regressions; live-model evaluation is a BYOK path.
 - Not a low-code flow builder. Flows are JSON DAGs; the admin app is a read-only inspector.
+- No proxy rotation, no captcha solving, no headful mode toggle, no anti-bot evasion.
+- No real-internet integration tests. Mock sites under `tests/fixtures/sites/` are the contract.
 
 ## Known issues
 
-See [ROADMAP.md](./ROADMAP.md) for deferred work and the order it lands. The two largest gaps:
-
-- The production dispatcher (`apps/runner/src/agent/dispatch.ts`) is a placeholder. The worker shell, agent loop, executor, FakeLLM, retry, and budgets are wired and tested; the BullMQ → Anthropic → Playwright wire-up is roadmap item 1.
-- Runs are persisted in-memory in the control-plane today; migrating onto the Drizzle schema (already present) is roadmap item 2.
+See [ROADMAP.md](./ROADMAP.md) for deferred work and the order it lands.
 
 ## License
 

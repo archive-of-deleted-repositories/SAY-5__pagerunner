@@ -1,67 +1,69 @@
 # Roadmap
 
-Concrete deferred work. Items are listed in priority order. The CI eval today
-runs the loop against a `FakeLLMProvider` and a `ScriptedExecutor`; everything
-below is what the gap to live behavior looks like.
+Concrete deferred work. Items are listed in priority order. Sprint 1 closed
+out the dispatcher, the Drizzle-backed stores, and Redis-pub/sub cancellation;
+everything below is what's still gap to a production deployment.
 
-## 1. BullMQ → Anthropic → Playwright dispatcher (highest priority)
+## 1. BullMQ → Anthropic → Playwright dispatcher ✅
 
-**What.** Replace the placeholder in `apps/runner/src/agent/dispatch.ts` with
-the real consumer: BullMQ worker pulls a run job, loads the flow + inputs from
-the DB, instantiates an Anthropic client, opens a Playwright browser context,
-and feeds both into `runAgent`.
+`apps/runner/src/agent/dispatch.ts` runs end-to-end. BullMQ worker pulls a run
+job, loads flow + inputs through the store interface, instantiates an
+Anthropic client, opens a Playwright browser context, and feeds both into
+`runAgent`. Per-tenant Redis semaphore caps concurrency, per-domain token
+bucket rate-limits, Redis pub/sub propagates cancellation, and infra failures
+land in DLQ with the original payload preserved. Tests in
+`apps/runner/src/agent/dispatch.test.ts` cover the four contract paths against
+the live Redis service in CI.
 
-**Why deferred.** Sprint 0 is the loop, executor, retry policy, budgets, and
-golden-flow regression suite. Those work without any network. The dispatcher
-adds three external dependencies (Redis worker contract, Anthropic API,
-Playwright browser lifecycle) and is not testable hermetically; landing it
-before the loop is solid would conflate model regressions with loop
-regressions.
+## 2. Drizzle-backed `RunStore` / `FlowStore` ✅
 
-**What changes when it lands.**
+`packages/db/src/stores/` ships both the in-memory and Postgres-backed
+implementations behind a single interface. The control-plane keeps the
+`MemoryRunStore` for unit tests; the runner uses `PgRunStore` against the
+partitioned `runs` table with monthly partitions created lazily on first
+insert. Idempotency conflicts are handled at the DB layer via the existing
+unique index. Tests run parameterized against both backends in CI.
 
-- The eval CLI grows a `--provider anthropic` path that requires
-  `ANTHROPIC_API_KEY` and reports real per-flow latency, real cost, and
-  real success rate against the mock sites under `tests/fixtures/sites/`.
-- The README results table grows a "Live" column.
-- `eval-smoke` in CI stays on the fake provider; live runs are opt-in via a
-  separate workflow with `secrets.ANTHROPIC_API_KEY`.
+## 3. Distributed cancellation via Redis pub/sub ✅
 
-## 2. Drizzle-backed `RunStore` / `FlowStore`
+Each runner subscribes to `runs:cancel:*` on start; `DELETE /runs/:id`
+publishes onto the channel keyed on `run_id`. The dispatcher's per-run
+`AbortController` propagates through the agent loop to both the LLM
+provider's in-flight HTTP call and the Playwright executor's in-flight
+primitive.
 
-**What.** Today the control-plane stores flows and runs in process memory. The
-Drizzle schema and migrations already exist under `packages/db/`; the swap is
-implementation, not design.
+## 4. S3-compatible artifact uploader ✅
 
-**What changes when it lands.** Restarts stop dropping in-flight runs;
-horizontal scaling of the control plane becomes possible.
+`apps/runner/src/agent/artifacts/uploader.ts` uses `@aws-sdk/client-s3`,
+gzip-compresses DOM, ships PNG screenshots and JSONL console logs, and warns
+when an upload exceeds 5s. Keys follow `artifacts/{tenant}/{run}/{step}/{kind}.{ext}`.
+The MinIO service in CI exercises the round-trip.
 
-## 3. Local-mock-site integration tests in CI
+## 5. Live mock-site eval CLI path
 
-**What.** `tests/fixtures/sites/server.ts` is a Fastify app with deterministic
-responses. The integration suite that drives Playwright against it runs locally
-under `RUN_INTEGRATION=1` but is not gated in CI.
+`pnpm eval run --suite golden_v1 --provider anthropic` exists as a CLI flag
+today but isn't wired against the dispatcher; it bypasses the queue and runs
+synchronously. The plan is to enqueue each flow onto the `runs` queue, await
+completion via SSE, and write the result alongside the hermetic baseline.
+Gated on `ANTHROPIC_API_KEY`; intentionally not part of `eval-smoke`.
 
-**Why deferred.** Browser binaries and per-test browser launches push the CI
-budget; we want them gated behind a separate workflow rather than the main
-required check.
+## 6. Live mock-site CI workflow
 
-**What changes when it lands.** A second CI job runs the full mock-site suite
-on every push to `main`, separate from `eval-smoke`.
+A second CI workflow that runs `pnpm eval run --provider anthropic` against
+the mock fastify sites with a stored `secrets.ANTHROPIC_API_KEY`. Runs on
+nightly schedule, not on every PR — keeps the per-PR check budget lean.
 
-## 4. Live distributed cancellation via Redis pub/sub
+## 7. Drizzle migration tooling
 
-**What.** Cancelling a run today flips an in-process flag. With multiple runner
-replicas, cancellation needs to hop processes. The plan is a Redis channel keyed
-on `run_id`; each runner subscribes on job start and unsubscribes on
-completion.
+Migrations land via `pnpm migrate` reading the single `0001_init.sql` file.
+The next iteration generates incremental SQL via `drizzle-kit` and adds a
+`pnpm migrate:rollback` for the in-place dev story. Production deployments
+get a separate `pnpm migrate:deploy` that runs inside the runner image's
+init container.
 
-**What changes when it lands.** `DELETE /runs/:id` propagates within one heartbeat
-across all replicas; cooperative cancellation tests in the loop become
-end-to-end.
-
-## 5. Real-internet flows — out of scope
+## 8. Real-internet flows — out of scope
 
 We will not run the eval against live websites. Mock sites under
-`tests/fixtures/sites/` are the contract. Real sites churn, break determinism,
-and turn loop regressions into "did Amazon change their checkout" debates.
+`tests/fixtures/sites/` are the contract. Real sites churn, break
+determinism, and turn loop regressions into "did Amazon change their
+checkout" debates.

@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 
 /**
  * Minimal deterministic mock target site for browser-driven integration
@@ -7,11 +7,10 @@ import { createServer } from 'node:http';
  * across requests so two runs against the same path produce byte-identical
  * responses, which is the baseline for replay determinism assertions.
  */
-const PORT = Number(process.env.MOCK_PORT ?? 4080);
-
 const ROUTES: Record<string, string> = {
   '/login': `<!doctype html><html><body>
     <form id="f"><input id="user"/><input id="pw"/><button id="submit">go</button></form>
+    <script>console.log('login page loaded');</script>
   </body></html>`,
   '/profile': `<!doctype html><html><body><h1 id="profile-name">alice</h1></body></html>`,
   '/search': `<!doctype html><html><body>
@@ -27,15 +26,31 @@ const ROUTES: Record<string, string> = {
     <input id="zip"/><button id="submit">submit</button>
     <div class="success">ok</div>
   </body></html>`,
+  '/slow': `<!doctype html><html><body><div id="ready">ready</div></body></html>`,
 };
 
-const server = createServer((req, res) => {
-  const path = (req.url ?? '/').split('?')[0] ?? '/';
-  const body = ROUTES[path] ?? `<!doctype html><html><body>${path}</body></html>`;
-  res.writeHead(200, { 'content-type': 'text/html' });
-  res.end(body);
-});
+export const buildServer = (): Server =>
+  createServer((req, res) => {
+    const path = (req.url ?? '/').split('?')[0] ?? '/';
+    const body = ROUTES[path] ?? `<!doctype html><html><body>${path}</body></html>`;
+    res.writeHead(200, { 'content-type': 'text/html' });
+    res.end(body);
+  });
 
-server.listen(PORT, () => {
-  console.info(`mock site listening on ${PORT}`);
-});
+export const start = (port = 0): Promise<{ server: Server; port: number; url: string }> =>
+  new Promise((resolve) => {
+    const server = buildServer();
+    server.listen(port, () => {
+      const addr = server.address();
+      const actual = typeof addr === 'object' && addr ? addr.port : port;
+      resolve({ server, port: actual, url: `http://127.0.0.1:${actual}` });
+    });
+  });
+
+export const stop = (server: Server): Promise<void> =>
+  new Promise((resolve) => server.close(() => resolve()));
+
+if (require.main === module) {
+  const port = Number(process.env.MOCK_PORT ?? 4080);
+  start(port).then(({ url }) => console.info(`mock site listening on ${url}`));
+}

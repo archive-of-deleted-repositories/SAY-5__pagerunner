@@ -18,6 +18,11 @@ BYOK live path.
   every replay produced an identical tool sequence.
 - **Per-tool step latency** — P50 / P95 of per-step latency, bucketed by
   tool name (`click`, `type`, `navigate`, `extract`, `wait`, `finish`).
+  Sampled with `performance.now()` and aggregated through the HDR
+  log-bucketed histogram in `packages/shared/src/hdr.ts`. Reported in
+  microseconds; ~6% relative error per bucket from the SUB_BUCKETS=16
+  layout. The agent loop emits both `latencyMs` (kept for legacy
+  persistence) and `latencyUs` (the HDR input) per step.
 - **Simulated cost per successful run** — mean and P95 of `totalCostUsd`
   reported by the agent loop. With `FakeLLMProvider` this number is fully
   deterministic and is the FakeProvider's scripted `costPerCallUsd`

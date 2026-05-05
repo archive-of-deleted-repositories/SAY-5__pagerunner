@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-05-05T23:15:46.487Z",
+  "generatedAt": "2026-05-05T23:45:11.960Z",
   "provider": "fake",
   "model": "fake-llm",
   "runsPerFlow": 100,
   "totalRuns": 1000,
   "concurrency": 8,
   "turnaroundMs": {
-    "p50": 0.1,
-    "p95": 0.36,
-    "p99": 0.68,
-    "p999": 1.36,
-    "max": 1.6
+    "p50": 0.09,
+    "p95": 0.39,
+    "p99": 0.78,
+    "p999": 1.41,
+    "max": 1.64
   },
   "perFlow": [
     {
@@ -77,39 +77,45 @@
   "perTool": [
     {
       "tool": "click",
-      "p50": 0,
-      "p95": 0,
-      "samples": 1600
+      "p50": 7,
+      "p95": 33,
+      "samples": 1600,
+      "latencyUnit": "us"
     },
     {
       "tool": "extract",
-      "p50": 0,
-      "p95": 0,
-      "samples": 1300
+      "p50": 7,
+      "p95": 23,
+      "samples": 1300,
+      "latencyUnit": "us"
     },
     {
       "tool": "finish",
-      "p50": 0,
-      "p95": 0,
-      "samples": 1000
+      "p50": 7,
+      "p95": 20,
+      "samples": 1000,
+      "latencyUnit": "us"
     },
     {
       "tool": "navigate",
-      "p50": 0,
-      "p95": 0,
-      "samples": 1000
+      "p50": 8,
+      "p95": 29,
+      "samples": 1000,
+      "latencyUnit": "us"
     },
     {
       "tool": "type",
-      "p50": 0,
-      "p95": 0,
-      "samples": 500
+      "p50": 7,
+      "p95": 26,
+      "samples": 500,
+      "latencyUnit": "us"
     },
     {
       "tool": "wait",
-      "p50": 0,
-      "p95": 0,
-      "samples": 300
+      "p50": 8,
+      "p95": 18,
+      "samples": 300,
+      "latencyUnit": "us"
     }
   ],
   "replayDeterminism": {

@@ -57,7 +57,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 3s --health-retries 10
       minio:
-        image: bitnami/minio:2025
+        image: bitnami/minio:latest
         env:
           MINIO_ROOT_USER: pagerunner
           MINIO_ROOT_PASSWORD: pagerunner123

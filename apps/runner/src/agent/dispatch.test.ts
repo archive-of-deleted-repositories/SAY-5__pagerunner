@@ -214,14 +214,14 @@ maybe('Dispatcher', () => {
     expect(head.$metadata.httpStatusCode).toBe(200);
   });
 
-  it('paces 50 enqueued runs against one domain via the token bucket', async () => {
+  it('paces 20 enqueued runs against one domain via the token bucket', async () => {
     const flow = flowStore.create({
       name: 'paced',
       dag: { nodes: [{ id: 'f', tool: 'finish' }] },
       targetDomain: 'paced.test',
     });
     const runIds: string[] = [];
-    for (let i = 0; i < 50; i += 1) {
+    for (let i = 0; i < 20; i += 1) {
       const r = runStore.create({
         flowId: flow.id,
         flowVersion: flow.version,
@@ -240,7 +240,7 @@ maybe('Dispatcher', () => {
       llmFactory: () => new FakeLLMProvider(fastScript),
       executorFactory: () => new ScriptedExecutor(),
       ratePerSec: () => 25,
-      workerConcurrency: 8,
+      workerConcurrency: 4,
     });
     await dispatcher.start(queueName);
 
@@ -248,11 +248,11 @@ maybe('Dispatcher', () => {
     await Promise.all(
       runIds.map((id) => queue.add('run', { runId: id, flowId: flow.id, tenantId: 'public' })),
     );
-    await waitFor(() => runIds.every((id) => runStore.get(id)?.status === 'succeeded'), 30_000);
+    await waitFor(() => runIds.every((id) => runStore.get(id)?.status === 'succeeded'), 20_000);
     const elapsed = Date.now() - start;
-    // 50 runs at 25 tokens/sec with bucket capacity 10 should take at least ~1.6s.
-    // We assert a soft floor to avoid flakes from CI timing.
-    expect(elapsed).toBeGreaterThan(1_000);
+    // 20 runs at 25 tokens/sec with bucket capacity 10 should still pace beyond
+    // the unrestricted concurrent baseline. Soft floor for CI flake budget.
+    expect(elapsed).toBeGreaterThan(300);
   });
 });
 

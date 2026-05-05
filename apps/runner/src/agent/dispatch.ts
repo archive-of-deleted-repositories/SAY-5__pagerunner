@@ -86,6 +86,7 @@ export class Dispatcher {
   private readonly bucketRate: (domain: string) => number;
   private readonly inflight = new Map<string, AbortController>();
   private worker: Worker | null = null;
+  private workerConnection: Redis | null = null;
   private subscriber: Redis | null = null;
   private shuttingDown = false;
 
@@ -120,8 +121,11 @@ export class Dispatcher {
 
   async start(queueName = 'runs'): Promise<void> {
     if (this.worker) return;
+    // BullMQ requires a dedicated connection with `maxRetriesPerRequest: null`
+    // for the worker so blocking commands (BRPOPLPUSH) can sit on the wire.
+    this.workerConnection = this.redis.duplicate({ maxRetriesPerRequest: null });
     this.worker = new Worker(queueName, (job) => this.handleJob(job as Job<RunJobPayload>), {
-      connection: this.redis,
+      connection: this.workerConnection,
       concurrency: this.opts.workerConcurrency ?? 4,
     });
     this.worker.on('error', (err) => {
@@ -153,8 +157,12 @@ export class Dispatcher {
     }
     await worker.close();
     if (this.subscriber) await this.subscriber.quit().catch(() => undefined);
+    if (this.workerConnection) {
+      await this.workerConnection.quit().catch(() => undefined);
+    }
     this.worker = null;
     this.subscriber = null;
+    this.workerConnection = null;
   }
 
   private async handleJob(job: Job<RunJobPayload>): Promise<void> {

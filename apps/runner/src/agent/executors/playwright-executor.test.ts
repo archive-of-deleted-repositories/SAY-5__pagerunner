@@ -163,16 +163,16 @@ maybe('PlaywrightExecutor', () => {
   it('surfaces a typed error for unreachable hosts', async () => {
     const tightExec = new PlaywrightExecutor({
       launchOptions: { headless: true },
-      navigationTimeoutMs: 500,
-      actionTimeoutMs: 500,
+      navigationTimeoutMs: 1_000,
+      actionTimeoutMs: 1_000,
     });
     try {
-      // 10.255.255.1 is a non-routable address, so the request will timeout
-      // rather than returning ECONNREFUSED from the loopback stack.
+      // 127.0.0.1:1 is on the loopback so name resolution is instant; we
+      // just need the connect-timeout to fire under our short budget.
       await expect(
         tightExec.execute({
           tool: 'navigate',
-          input: { url: 'http://10.255.255.1/' },
+          input: { url: 'http://127.0.0.1:1/' },
         }),
       ).rejects.toMatchObject({ code: expect.stringMatching(/NAVIGATION_TIMEOUT|TOOL_EXECUTION/) });
     } finally {

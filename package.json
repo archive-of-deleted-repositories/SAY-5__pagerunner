@@ -16,6 +16,7 @@
     "test": "jest --runInBand",
     "test:cov": "jest --runInBand --coverage",
     "eval": "tsx eval/cli.ts",
+    "bench-eval": "tsx eval/bench.ts",
     "migrate": "tsx packages/db/src/migrate.ts",
     "seed": "tsx packages/db/src/seed.ts",
     "prepare": "husky || true"

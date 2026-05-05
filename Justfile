@@ -16,6 +16,9 @@ test:
 eval suite="golden_v1":
     pnpm eval run --suite {{suite}}
 
+bench-eval:
+    pnpm bench-eval
+
 lint:
     pnpm lint
 

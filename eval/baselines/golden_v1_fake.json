@@ -1,0 +1,92 @@
+{
+  "suite": "golden_v1",
+  "provider": "fake",
+  "generated_at": "2026-05-05T22:02:28.800Z",
+  "flow_count": 10,
+  "success_rate": 1,
+  "average_steps_to_success": 5.7,
+  "average_replay_determinism_score": 1,
+  "total_simulated_cost_usd": 0.057,
+  "flows": [
+    {
+      "flow_id": "conditional_branch",
+      "flow_name": "branch on extracted value",
+      "success": true,
+      "step_count": 5,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.005
+    },
+    {
+      "flow_id": "dropdown_date",
+      "flow_name": "dropdown plus date picker",
+      "success": true,
+      "step_count": 7,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.007
+    },
+    {
+      "flow_id": "error_recovery",
+      "flow_name": "step retries on flaky selector then succeeds",
+      "success": true,
+      "step_count": 4,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.004
+    },
+    {
+      "flow_id": "file_upload",
+      "flow_name": "file upload with progress wait",
+      "success": true,
+      "step_count": 5,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.005
+    },
+    {
+      "flow_id": "form_validation",
+      "flow_name": "multi-step form with validation",
+      "success": true,
+      "step_count": 7,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.007
+    },
+    {
+      "flow_id": "infinite_scroll",
+      "flow_name": "infinite scroll until target",
+      "success": true,
+      "step_count": 6,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.006
+    },
+    {
+      "flow_id": "login",
+      "flow_name": "login then read profile",
+      "success": true,
+      "step_count": 6,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.006
+    },
+    {
+      "flow_id": "paginated_scrape",
+      "flow_name": "paginated scrape three pages",
+      "success": true,
+      "step_count": 7,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.007
+    },
+    {
+      "flow_id": "popup_dismiss",
+      "flow_name": "dismiss popup then proceed",
+      "success": true,
+      "step_count": 5,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.005
+    },
+    {
+      "flow_id": "search_extract",
+      "flow_name": "search and extract first result",
+      "success": true,
+      "step_count": 5,
+      "replay_determinism_score": 1,
+      "simulated_cost_usd": 0.005
+    }
+  ]
+}

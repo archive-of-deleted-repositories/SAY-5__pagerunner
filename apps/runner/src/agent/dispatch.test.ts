@@ -178,7 +178,12 @@ maybe('Dispatcher', () => {
 
     const flow = flowStore.create({
       name: 'demo',
-      dag: { nodes: [{ id: 'f', tool: 'finish' }] },
+      dag: {
+        nodes: [
+          { id: 'n', tool: 'navigate', next: 'f' },
+          { id: 'f', tool: 'finish' },
+        ],
+      },
       targetDomain: 'x.test',
     });
     const run = runStore.create({
@@ -195,7 +200,12 @@ maybe('Dispatcher', () => {
       accessKeyId: access,
       secretAccessKey: secret,
     });
-    const fastScript: ToolCall[] = [{ tool: 'finish', input: { result: { ok: true } } }];
+    // Navigate produces a non-empty DOM under ScriptedExecutor; finish leaves
+    // the DOM empty. Two-step script ensures step 0 generates an artifact.
+    const fastScript: ToolCall[] = [
+      { tool: 'navigate', input: { url: 'http://x.test/' } },
+      { tool: 'finish', input: { result: { ok: true } } },
+    ];
     dispatcher = new Dispatcher({
       redis,
       runStore,

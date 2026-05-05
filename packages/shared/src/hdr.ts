@@ -111,7 +111,10 @@ export class HdrHistogram {
     if (total === BigInt(0)) return 0;
     const clamped = Math.max(0, Math.min(1, p));
     // Use BigInt arithmetic to avoid 2^53 overflow at high counts.
-    const targetBig = clamped === 0 ? BigInt(1) : ceilDivBigInt(total * BigInt(Math.round(clamped * 1_000_000)), BigInt(1_000_000));
+    const targetBig =
+      clamped === 0
+        ? BigInt(1)
+        : ceilDivBigInt(total * BigInt(Math.round(clamped * 1_000_000)), BigInt(1_000_000));
     const target = targetBig === BigInt(0) ? BigInt(1) : targetBig;
     let running = BigInt(0);
     for (let i = 0; i < MAX_BUCKETS; i++) {

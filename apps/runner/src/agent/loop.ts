@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import {
   AbortError,
   CostBudgetExceededError,
@@ -29,7 +30,19 @@ export interface RunAgentOptions {
   executor: ToolExecutor;
   budget?: Partial<AgentBudget>;
   initialObservation?: AgentObservation;
+  /**
+   * Wall-clock source used for budget enforcement. Defaults to `Date.now`.
+   * Tests inject a fake clock here; per-step latency is sampled separately
+   * via `hiResClock` so this can stay integer-millisecond without sacrificing
+   * timer resolution.
+   */
   clock?: () => number;
+  /**
+   * High-resolution monotonic clock for per-step latency, in milliseconds with
+   * sub-millisecond resolution. Defaults to `performance.now`. Convert to
+   * integer microseconds at the call site via `Math.round(ms * 1000)`.
+   */
+  hiResClock?: () => number;
   /** Test hook: replace the retry sleep. Production wires this to setTimeout. */
   sleep?: (ms: number) => Promise<void>;
   /** Abort signal for cooperative cancellation. Propagated to provider/executor. */
@@ -44,6 +57,7 @@ export interface RunAgentOptions {
 export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
   const budget: AgentBudget = { ...DEFAULT_BUDGET, ...opts.budget };
   const clock = opts.clock ?? (() => Date.now());
+  const hiResClock = opts.hiResClock ?? (() => performance.now());
   const sleep = opts.sleep ?? defaultSleep;
   const startedAt = clock();
   const history: ToolCall[] = [];
@@ -95,7 +109,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
     let stepRetries = 0;
     let executed: ToolExecutionResult | null = null;
     let lastError: PageRunnerError | undefined;
-    const stepStarted = clock();
+    const stepStartedHiRes = hiResClock();
 
     while (true) {
       checkAbort();
@@ -125,7 +139,9 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
       }
     }
 
-    const latency = clock() - stepStarted;
+    const elapsedMs = hiResClock() - stepStartedHiRes;
+    const latencyUs = Math.max(0, Math.round(elapsedMs * 1000));
+    const latencyMs = Math.floor(elapsedMs);
 
     if (executed) {
       const stepRecord: AgentRunResult['steps'][number] = {
@@ -133,7 +149,8 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
         tool: validated.tool,
         input: validated.input as Record<string, unknown>,
         output: executed.output,
-        latencyMs: latency,
+        latencyMs,
+        latencyUs,
         retryCount: stepRetries,
       };
       steps.push(stepRecord);
@@ -163,7 +180,8 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
       idx: stepIdx,
       tool: validated.tool,
       input: validated.input as Record<string, unknown>,
-      latencyMs: latency,
+      latencyMs,
+      latencyUs,
       retryCount: stepRetries,
       errorCode: lastError?.code ?? 'UNKNOWN',
     };

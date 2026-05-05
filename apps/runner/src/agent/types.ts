@@ -58,7 +58,13 @@ export interface AgentRunResult {
     tool: string;
     input: Record<string, unknown>;
     output?: Record<string, unknown>;
+    /** Step latency rounded down to integer milliseconds (kept for legacy persistence). */
     latencyMs: number;
+    /**
+     * Step latency in integer microseconds, sampled with `performance.now()`.
+     * Sub-millisecond resolution; this is the value the HDR histogram records.
+     */
+    latencyUs: number;
     retryCount: number;
     errorCode?: string;
   }>;

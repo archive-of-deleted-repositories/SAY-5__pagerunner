@@ -6,6 +6,7 @@ import { runAgent } from '../apps/runner/src/agent/loop.js';
 import { FakeLLMProvider } from '../apps/runner/src/agent/fake-llm.js';
 import { ScriptedExecutor } from '../apps/runner/src/agent/scripted-executor.js';
 import type { ToolCall } from '../packages/agent-tools/src/index.js';
+import { ToolLatencyRegistry } from '../packages/shared/src/hdr.js';
 
 const FLOWS_DIR = join(process.cwd(), 'eval/flows');
 const RESULTS_DIR = join(process.cwd(), 'bench/results');
@@ -29,7 +30,7 @@ interface JobSpec {
 
 interface StepSample {
   tool: string;
-  latencyMs: number;
+  latencyUs: number;
 }
 
 interface RunSample {
@@ -118,7 +119,7 @@ async function runOne(flow: FlowSpec): Promise<{
     executor,
     sleep: async () => undefined,
     onStep: (s) => {
-      perStep.push({ tool: s.tool, latencyMs: s.latencyMs });
+      perStep.push({ tool: s.tool, latencyUs: s.latencyUs });
     },
   });
   const sample: {
@@ -251,7 +252,11 @@ interface BenchSummary {
   concurrency: number;
   turnaroundMs: { p50: number; p95: number; p99: number; p999: number; max: number };
   perFlow: Array<{ flowId: string; flowName: string; meanSteps: number; successRate: number }>;
-  perTool: Array<{ tool: string; p50: number; p95: number; samples: number }>;
+  /**
+   * Per-tool step latency. P50/P95 are HDR-bucketed microseconds (~6%
+   * relative error per bucket). `latencyUnit` is always `us`.
+   */
+  perTool: Array<{ tool: string; p50: number; p95: number; samples: number; latencyUnit: 'us' }>;
   replayDeterminism: { score: number; samples: number };
   simulatedCost: { meanPerRunUsd: number; p95PerRunUsd: number };
   failureBreakdown: {
@@ -264,24 +269,24 @@ interface BenchSummary {
 
 function summarize(samples: RunSample[], replayScore: number, args: CliArgs): BenchSummary {
   const turnaround = samples.map((s) => s.latencyMs).sort((a, b) => a - b);
-  const perToolBuckets = new Map<string, number[]>();
+  // Per-tool latency aggregates through the HDR registry. The agent loop
+  // already emits integer microseconds per step (sampled with
+  // `performance.now()`), so we just record into the histogram and read back
+  // P50/P95 at summary time. ~6% relative-error per bucket; documented in the
+  // README caption.
+  const registry = new ToolLatencyRegistry();
   for (const s of samples) {
-    for (const step of s.perStep) {
-      const arr = perToolBuckets.get(step.tool);
-      if (arr) arr.push(step.latencyMs);
-      else perToolBuckets.set(step.tool, [step.latencyMs]);
-    }
+    for (const step of s.perStep) registry.record(step.tool, step.latencyUs);
   }
-  const perTool = Array.from(perToolBuckets.entries())
-    .map(([tool, raw]) => {
-      const sorted = [...raw].sort((a, b) => a - b);
-      return {
-        tool,
-        p50: quantile(sorted, 0.5),
-        p95: quantile(sorted, 0.95),
-        samples: sorted.length,
-      };
-    })
+  const perTool = registry
+    .snapshot([0.5, 0.95])
+    .map((row) => ({
+      tool: row.tool,
+      p50: Math.round(row.percentilesUs[0.5] ?? 0),
+      p95: Math.round(row.percentilesUs[0.95] ?? 0),
+      samples: row.samples,
+      latencyUnit: 'us' as const,
+    }))
     .sort((a, b) => a.tool.localeCompare(b.tool));
 
   const flowGroups = new Map<string, RunSample[]>();
@@ -336,12 +341,7 @@ function summarize(samples: RunSample[], replayScore: number, args: CliArgs): Be
       max: round2(turnaround[turnaround.length - 1] ?? 0),
     },
     perFlow,
-    perTool: perTool.map((t) => ({
-      tool: t.tool,
-      p50: round2(t.p50),
-      p95: round2(t.p95),
-      samples: t.samples,
-    })),
+    perTool,
     replayDeterminism: { score: Number(replayScore.toFixed(4)), samples: 0 },
     simulatedCost: {
       meanPerRunUsd: round6(meanCost),
@@ -425,10 +425,10 @@ function formatStdout(summary: BenchSummary): string {
     const pct = (f.successRate * 100).toFixed(1) + '%';
     lines.push(`${rpad(f.flowName, 48)}${rpad(f.meanSteps.toFixed(1), 12)}${pct}`);
   }
-  lines.push('## per-tool latency (ms, all flows)');
-  lines.push(`${rpad('tool', 10)}${rpad('p50', 8)}${rpad('p95', 8)}samples`);
+  lines.push('## per-tool latency (us, all flows; HDR-bucketed, ~6% relative error)');
+  lines.push(`${rpad('tool', 10)}${rpad('p50_us', 10)}${rpad('p95_us', 10)}samples`);
   for (const t2 of summary.perTool) {
-    lines.push(`${rpad(t2.tool, 10)}${rpad(t2.p50, 8)}${rpad(t2.p95, 8)}${t2.samples}`);
+    lines.push(`${rpad(t2.tool, 10)}${rpad(t2.p50, 10)}${rpad(t2.p95, 10)}${t2.samples}`);
   }
   lines.push(
     `## replay determinism (${summary.replayDeterminism.samples} replays of completed runs)`,

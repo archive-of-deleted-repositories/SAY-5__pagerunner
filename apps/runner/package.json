@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.94.0",
+    "@aws-sdk/client-s3": "^3.1043.0",
     "@pagerunner/agent-tools": "workspace:*",
     "@pagerunner/db": "workspace:*",
     "@pagerunner/shared": "workspace:*",

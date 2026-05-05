@@ -3,6 +3,8 @@ import IORedis, { type Redis } from 'ioredis';
 import { Dispatcher } from './dispatch';
 import { FakeLLMProvider } from './fake-llm';
 import { ScriptedExecutor } from './scripted-executor';
+import { S3ArtifactUploader } from './artifacts/uploader';
+import { CreateBucketCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { MemoryFlowStore, MemoryRunStore } from '@pagerunner/db';
 import type { ToolCall } from '@pagerunner/agent-tools';
 
@@ -158,6 +160,58 @@ maybe('Dispatcher', () => {
     await waitFor(() => runStore.get(run.id)?.status === 'running', 10_000);
     await redis.publish(`runs:cancel:${run.id}`, 'cancel');
     await waitFor(() => runStore.get(run.id)?.status === 'cancelled', 10_000);
+  });
+
+  it('persists artifacts to S3 when an uploader is wired', async () => {
+    const endpoint = process.env.S3_ENDPOINT;
+    if (!endpoint) return; // soft-skip if MinIO isn't available
+    const bucket = process.env.S3_BUCKET ?? 'pagerunner-artifacts';
+    const access = process.env.S3_ACCESS_KEY ?? 'pagerunner';
+    const secret = process.env.S3_SECRET_KEY ?? 'pagerunner123';
+    const s3 = new S3Client({
+      endpoint,
+      region: 'us-east-1',
+      forcePathStyle: true,
+      credentials: { accessKeyId: access, secretAccessKey: secret },
+    });
+    await s3.send(new CreateBucketCommand({ Bucket: bucket })).catch(() => undefined);
+
+    const flow = flowStore.create({
+      name: 'demo',
+      dag: { nodes: [{ id: 'f', tool: 'finish' }] },
+      targetDomain: 'x.test',
+    });
+    const run = runStore.create({
+      flowId: flow.id,
+      flowVersion: flow.version,
+      inputs: {},
+      tenantId: 'public',
+      targetDomain: 'x.test',
+    });
+
+    const uploader = new S3ArtifactUploader({
+      endpoint,
+      bucket,
+      accessKeyId: access,
+      secretAccessKey: secret,
+    });
+    const fastScript: ToolCall[] = [{ tool: 'finish', input: { result: { ok: true } } }];
+    dispatcher = new Dispatcher({
+      redis,
+      runStore,
+      flowStore,
+      llmFactory: () => new FakeLLMProvider(fastScript),
+      executorFactory: () => new ScriptedExecutor(),
+      artifactUploader: uploader,
+    });
+    await dispatcher.start(queueName);
+    await queue.add('run', { runId: run.id, flowId: flow.id, tenantId: 'public' });
+
+    await waitFor(() => runStore.get(run.id)?.status === 'succeeded', 15_000);
+    const head = await s3.send(
+      new HeadObjectCommand({ Bucket: bucket, Key: `artifacts/public/${run.id}/0/dom.html.gz` }),
+    );
+    expect(head.$metadata.httpStatusCode).toBe(200);
   });
 
   it('paces 50 enqueued runs against one domain via the token bucket', async () => {

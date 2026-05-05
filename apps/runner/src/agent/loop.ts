@@ -1,4 +1,5 @@
 import {
+  AbortError,
   CostBudgetExceededError,
   PageRunnerError,
   StepBudgetExceededError,
@@ -13,6 +14,7 @@ import {
   type AgentObservation,
   type AgentRunResult,
   type LLMProvider,
+  type ToolExecutionResult,
   type ToolExecutor,
 } from './types.js';
 import { decide } from './retry-policy.js';
@@ -30,6 +32,13 @@ export interface RunAgentOptions {
   clock?: () => number;
   /** Test hook: replace the retry sleep. Production wires this to setTimeout. */
   sleep?: (ms: number) => Promise<void>;
+  /** Abort signal for cooperative cancellation. Propagated to provider/executor. */
+  signal?: AbortSignal;
+  /** Hook called after each step persists. Used by dispatcher for artifact upload. */
+  onStep?: (
+    step: AgentRunResult['steps'][number],
+    captured: { domAfter: string; artifacts?: ToolExecutionResult['artifacts'] },
+  ) => void;
 }
 
 export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
@@ -45,7 +54,12 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
   let totalTokensOut = 0;
   let stepIdx = 0;
 
+  const checkAbort = (): void => {
+    if (opts.signal?.aborted) throw new AbortError();
+  };
+
   while (true) {
+    checkAbort();
     if (clock() - startedAt > budget.maxWallClockMs) {
       throw new WallClockExceededError(budget.maxWallClockMs);
     }
@@ -54,7 +68,11 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
     }
 
     const llmResponse = await withSpan('agent.llm', { stepIdx, model: opts.llm.model }, () =>
-      opts.llm.step({ ...observation, domExcerpt: truncate(observation.domExcerpt) }, history),
+      opts.llm.step(
+        { ...observation, domExcerpt: truncate(observation.domExcerpt) },
+        history,
+        opts.signal,
+      ),
     );
     totalCostUsd += llmResponse.costUsd;
     totalTokensIn += llmResponse.tokensIn;
@@ -75,19 +93,25 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
     history.push(llmResponse.toolCall);
 
     let stepRetries = 0;
-    let executed: { output: Record<string, unknown>; domAfter: string } | null = null;
+    let executed: ToolExecutionResult | null = null;
     let lastError: PageRunnerError | undefined;
     const stepStarted = clock();
 
     while (true) {
+      checkAbort();
       try {
         executed = await withSpan(
           'agent.tool',
           { stepIdx, tool: validated.tool, retry: stepRetries },
-          () => opts.executor.execute({ tool: validated.tool, input: validated.input as never }),
+          () =>
+            opts.executor.execute(
+              { tool: validated.tool, input: validated.input as never },
+              opts.signal,
+            ),
         );
         break;
       } catch (err) {
+        if (err instanceof AbortError || opts.signal?.aborted) throw new AbortError();
         const decision = decide(err, { stepRetryCount: stepRetries, jobRetryCount: 0 });
         if (decision.action !== 'retry') {
           lastError =
@@ -113,6 +137,11 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
         retryCount: stepRetries,
       };
       steps.push(stepRecord);
+      const captured: { domAfter: string; artifacts?: ToolExecutionResult['artifacts'] } = {
+        domAfter: executed.domAfter,
+      };
+      if (executed.artifacts) captured.artifacts = executed.artifacts;
+      opts.onStep?.(stepRecord, captured);
       observation = { domExcerpt: executed.domAfter, lastError: undefined as unknown as string };
       if (validated.tool === 'finish') {
         const result = executed.output['result'] as Record<string, unknown> | undefined;
@@ -139,6 +168,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentRunResult> {
       errorCode: lastError?.code ?? 'UNKNOWN',
     };
     steps.push(failed);
+    opts.onStep?.(failed, { domAfter: observation.domExcerpt });
     return {
       status: 'failed',
       steps,

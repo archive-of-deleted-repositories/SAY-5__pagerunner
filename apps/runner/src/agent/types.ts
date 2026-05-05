@@ -28,12 +28,27 @@ export interface LLMResponse {
 }
 
 export interface LLMProvider {
-  step(observation: AgentObservation, history: ToolCall[]): Promise<LLMResponse>;
+  step(
+    observation: AgentObservation,
+    history: ToolCall[],
+    signal?: AbortSignal,
+  ): Promise<LLMResponse>;
   readonly model: string;
 }
 
+export interface ToolExecutionResult {
+  output: Record<string, unknown>;
+  domAfter: string;
+  /** Optional artifacts captured per step. Loop persists, executor surfaces. */
+  artifacts?: {
+    screenshot?: Buffer;
+    consoleMessages?: string[];
+  };
+}
+
 export interface ToolExecutor {
-  execute(call: ToolCall): Promise<{ output: Record<string, unknown>; domAfter: string }>;
+  execute(call: ToolCall, signal?: AbortSignal): Promise<ToolExecutionResult>;
+  dispose?(): Promise<void>;
 }
 
 export interface AgentRunResult {

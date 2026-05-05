@@ -11,6 +11,7 @@
     "replay": "tsx src/cli/replay.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.94.0",
     "@pagerunner/agent-tools": "workspace:*",
     "@pagerunner/db": "workspace:*",
     "@pagerunner/shared": "workspace:*",

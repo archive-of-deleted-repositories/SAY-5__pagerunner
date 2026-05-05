@@ -76,3 +76,5 @@ export const toolJsonSchemas = (): Record<ToolName, unknown> => {
   }
   return out;
 };
+
+export * from './anthropic-tools.js';

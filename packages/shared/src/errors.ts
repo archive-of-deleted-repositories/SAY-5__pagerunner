@@ -56,3 +56,45 @@ export class IdempotencyConflictError extends PageRunnerError {
     super(`idempotency key in use: ${key}`, 'IDEMPOTENCY_CONFLICT', false);
   }
 }
+
+export class RateLimitError extends PageRunnerError {
+  constructor(
+    message: string,
+    public readonly retryAfterMs?: number,
+  ) {
+    super(message, 'RATE_LIMIT', true);
+  }
+}
+
+export class UpstreamError extends PageRunnerError {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message, 'UPSTREAM_ERROR', true);
+  }
+}
+
+export class AuthError extends PageRunnerError {
+  constructor(message: string) {
+    super(message, 'AUTH_ERROR', false);
+  }
+}
+
+export class AbortError extends PageRunnerError {
+  constructor() {
+    super('aborted', 'ABORTED', false);
+  }
+}
+
+export class NavigationTimeoutError extends PageRunnerError {
+  constructor(public readonly url: string) {
+    super(`navigation timeout: ${url}`, 'NAVIGATION_TIMEOUT', true);
+  }
+}
+
+export class ToolExecutionError extends PageRunnerError {
+  constructor(message: string) {
+    super(message, 'TOOL_EXECUTION', true);
+  }
+}

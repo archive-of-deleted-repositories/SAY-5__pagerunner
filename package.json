@@ -19,6 +19,7 @@
     "bench-eval": "tsx eval/bench.ts",
     "bench": "tsx bench/bench.ts",
     "bench:cheap": "tsx bench/bench.ts --provider anthropic --model claude-haiku",
+    "bench-regress": "tsx bench/bench-regress.ts",
     "migrate": "tsx packages/db/src/migrate.ts",
     "seed": "tsx packages/db/src/seed.ts",
     "prepare": "husky || true"

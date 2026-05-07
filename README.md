@@ -35,15 +35,15 @@ Live agent runs against the mock fastify sites are gated behind `ANTHROPIC_API_K
 
 ## Performance
 
-Numbers below are from `pnpm bench` — 100 runs of each of the 10 golden flows (1000 total) on an M-series Mac, FakeLLMProvider against the in-process mock executor, 8 in-process workers. Source artifact: [`bench/results/2026-05-05T23-45-11-960Z.json`](./bench/results/2026-05-05T23-45-11-960Z.json). Methodology in [`bench/README.md`](./bench/README.md).
+Numbers below are from `pnpm bench` — **200 runs of each of the 10 golden flows (2000 total)** on an M-series Mac, FakeLLMProvider against the in-process mock executor, 8 in-process workers. Source artifact: [`bench/results/2000runs_2026-05-07T20-06-10-959Z.json`](./bench/results/2000runs_2026-05-07T20-06-10-959Z.json). Methodology in [`bench/README.md`](./bench/README.md).
 
 | Metric                               | Value     |
 | ------------------------------------ | --------- |
-| Run turnaround P50                   | 0.09 ms   |
-| Run turnaround P95                   | 0.39 ms   |
-| Run turnaround P99                   | 0.78 ms   |
-| Run turnaround P999                  | 1.41 ms   |
-| Run turnaround max                   | 1.64 ms   |
+| Run turnaround P50                   | 0.11 ms   |
+| Run turnaround P95                   | 0.35 ms   |
+| Run turnaround P99                   | 0.58 ms   |
+| Run turnaround P999                  | 1.85 ms   |
+| Run turnaround max                   | 2.16 ms   |
 | Replay determinism (50 replays)      | 1.000     |
 | Simulated cost per run (mean)        | $0.005700 |
 | Simulated cost per run (P95)         | $0.007000 |
@@ -53,14 +53,18 @@ P50/P95 in microseconds, HDR-bucketed (~6% relative error per bucket). Source: s
 
 | tool     | P50 (us) | P95 (us) | samples |
 | -------- | -------- | -------- | ------- |
-| click    | 7        | 33       | 1600    |
-| extract  | 7        | 23       | 1300    |
-| finish   | 7        | 20       | 1000    |
-| navigate | 8        | 29       | 1000    |
-| type     | 7        | 26       | 500     |
-| wait     | 8        | 18       | 300     |
+| click    | 7        | 37       | 3200    |
+| extract  | 8        | 23       | 2600    |
+| finish   | 9        | 23       | 2000    |
+| navigate | 10       | 27       | 2000    |
+| type     | 8        | 26       | 1000    |
+| wait     | 8        | 20       | 600     |
 
 Read these as the loop+executor overhead floor — what the dispatcher adds on top of the model call. **Live runs are dominated by Anthropic latency** (1-3s per step at Sonnet 4.7) and **Playwright tool execution** (50-500ms per browser action). FakeLLM cost numbers are deterministic per scripted tool sequence; they exercise the cost-tracking code path but are not predictive of live spend. To run live: `ANTHROPIC_API_KEY=sk-... pnpm bench:cheap`.
+
+### Regression gate
+
+`pnpm bench-regress --baseline <path> --runs <n>` runs a fresh bench and compares against a committed baseline. Default mode gates on stable metrics only (per-flow mean steps, success rate, simulated cost) with a 30% drift threshold; `--strict` also gates on noisy metrics (turnaround latency, per-tool microsecond P50/P95). The CI `bench-regress` job runs at 50 runs/flow against the 2000-run baseline above.
 
 ## What this studies
 

@@ -99,6 +99,21 @@ jobs:
       - name: golden-flow smoke (FakeLLMProvider, 3 flows)
         run: pnpm eval run --suite golden_v1 --limit 3
 
+  bench-regress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.33.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile=false
+      - name: regress against committed 2000-run baseline (stable metrics only)
+        run: |
+          pnpm bench-regress \
+            --baseline bench/results/2000runs_2026-05-07T20-06-10-959Z.json \
+            --runs 50 --threshold 30
+
   build-images:
     runs-on: ubuntu-latest
     needs: [lint, typecheck, test, eval-smoke]

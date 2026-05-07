@@ -1,7 +1,7 @@
 -- PageRunner initial schema. Generated to match packages/db/src/schema.ts.
 -- runs is partitioned by month on created_at; default partition catches stragglers.
 
-CREATE TYPE run_status AS ENUM ('queued','running','succeeded','failed','dlq','cancelled');
+CREATE TYPE run_status AS ENUM ('queued','running','cancelling','succeeded','failed','dlq','cancelled');
 CREATE TYPE step_status AS ENUM ('pending','running','succeeded','failed','skipped');
 CREATE TYPE artifact_kind AS ENUM ('screenshot','dom','trace','console');
 

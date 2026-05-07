@@ -68,6 +68,16 @@ Drizzle owns the schema (`packages/db/src/schema.ts`). `runs` is partitioned by 
 
 Migrations are plain SQL in `packages/db/migrations`. Drizzle-kit can generate diffs against a shadow DB (`pnpm --filter @pagerunner/db generate`); the SQL files in the repo are the canonical source so reviewers don't need to install the kit to read them.
 
+## Distributed cancellation
+
+A run can be cancelled by `POST /v1/runs/{id}/cancel`. The control-plane writes `status = cancelling` to the DB synchronously and then publishes on the channel `runs:cancel:<run_id>` (Redis `PUBLISH`). Each dispatcher pod opens a dedicated `ioredis` connection and `PSUBSCRIBE`s the pattern `runs:cancel:*` at startup.
+
+When a `pmessage` arrives, every pod looks up the run id in its in-memory `runId -> AbortController` map. The pod that owns the run aborts the controller; the agent loop catches `AbortError`, unwinds tool execution, and the dispatcher writes `status = cancelled` to the DB. Pods that don't have a handle for that run no-op the message — there's no coordination protocol because there's no shared state to reconcile.
+
+Pub/sub is best-effort delivery. If Redis disconnects mid-run the pod that owns the run never sees the cancel; the run completes normally on its own budget. The local AbortController is the source of truth for the running pod. The DB still reflects `cancelling` so the operator sees the intent; the next status transition is whatever the run terminates with (`succeeded`, `failed`, `dlq`). The control-plane keeps the cancel idempotent — re-issuing the request from `cancelling` re-publishes without re-writing the DB row.
+
+Two-pod coverage in `apps/runner/src/agent/dispatch.distributed-cancel.test.ts` boots two `Dispatcher` instances against the same Redis: pod A claims a long-running job whose `LLMProvider.step` blocks on the abort signal, pod B publishes the cancel via the same `CancelPublisher` the control-plane uses. The test asserts (a) pod A aborts within 2 seconds of the publish, (b) the run lands at `cancelled`, (c) pod B's `pmessage` handler is a clean no-op.
+
 ## Event bus and SSE resume
 
 `EventBus` keeps a per-run ring buffer (256 events). `GET /runs/{id}/events` flushes the buffered events past `Last-Event-ID` first, then attaches a live subscriber. The contract is: a client that disconnects mid-stream and reconnects with `Last-Event-ID: <last-seen>` will not miss any event in the buffer window.

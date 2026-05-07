@@ -3,7 +3,14 @@
  * Same surface area so the control-plane and runner can swap them
  * transparently in tests vs. production.
  */
-export type RunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'dlq' | 'cancelled';
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  | 'cancelling'
+  | 'succeeded'
+  | 'failed'
+  | 'dlq'
+  | 'cancelled';
 
 export interface StoredRun {
   id: string;

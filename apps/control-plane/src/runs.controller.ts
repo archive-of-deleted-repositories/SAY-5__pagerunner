@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { FlowStore } from './flow-store.js';
 import { RunStore, type RunStatus } from './run-store.js';
 import { EventBus } from './event-bus.js';
+import { CancelPublisher } from './cancel-publisher.js';
 
 const CreateRunBody = z.object({
   flowId: z.string().min(1),
@@ -23,7 +24,9 @@ const CreateRunBody = z.object({
 });
 
 const ListRunsQuery = z.object({
-  status: z.enum(['queued', 'running', 'succeeded', 'failed', 'dlq', 'cancelled']).optional(),
+  status: z
+    .enum(['queued', 'running', 'cancelling', 'succeeded', 'failed', 'dlq', 'cancelled'])
+    .optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
@@ -34,6 +37,7 @@ export class RunsController {
     private readonly flowStore: FlowStore,
     private readonly runStore: RunStore,
     private readonly bus: EventBus,
+    private readonly cancelPublisher: CancelPublisher,
   ) {}
 
   @Post()
@@ -73,10 +77,28 @@ export class RunsController {
   }
 
   @Post(':id/cancel')
-  cancel(@Param('id') id: string): { ok: true } {
-    const ok = this.runStore.cancel(id);
-    if (!ok) throw new BadRequestException(`run ${id} not cancellable`);
-    return { ok: true };
+  async cancel(@Param('id') id: string): Promise<{ ok: true; recipients: number }> {
+    const run = this.runStore.get(id);
+    if (!run) throw new NotFoundException(`run ${id} not found`);
+    if (run.status === 'queued') {
+      // Queued runs are cancelled inline; the job will never come off
+      // the queue because the dispatcher checks status before claiming.
+      const ok = this.runStore.cancel(id);
+      if (!ok) throw new BadRequestException(`run ${id} not cancellable`);
+      return { ok: true, recipients: 0 };
+    }
+    if (run.status !== 'running' && run.status !== 'cancelling') {
+      throw new BadRequestException(`run ${id} not cancellable in status ${run.status}`);
+    }
+    // Mark intent in the DB synchronously, then publish on the pub/sub
+    // channel. The dispatcher pod that owns the in-memory AbortController
+    // will pick up the message and finish the cancel by transitioning to
+    // `cancelled` once the agent loop unwinds. Other pods no-op the
+    // message; pub/sub is fan-out and the targeted pod is the only
+    // consumer that owns state.
+    this.runStore.setStatus(id, 'cancelling');
+    const recipients = await this.cancelPublisher.publish(id, 'user-requested');
+    return { ok: true, recipients };
   }
 
   @Get(':id/events')

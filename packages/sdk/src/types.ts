@@ -1,4 +1,11 @@
-export type RunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'dlq' | 'cancelled';
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  | 'cancelling'
+  | 'succeeded'
+  | 'failed'
+  | 'dlq'
+  | 'cancelled';
 
 export interface FlowDag {
   nodes: Array<{

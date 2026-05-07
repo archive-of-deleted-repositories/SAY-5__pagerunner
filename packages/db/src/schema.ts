@@ -13,6 +13,7 @@ import {
 export const runStatus = pgEnum('run_status', [
   'queued',
   'running',
+  'cancelling',
   'succeeded',
   'failed',
   'dlq',

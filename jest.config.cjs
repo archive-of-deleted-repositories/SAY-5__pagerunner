@@ -43,7 +43,7 @@ module.exports = {
   coverageThreshold:
     process.env.CI === 'true'
       ? {
-          global: { lines: 80, statements: 80, functions: 70, branches: 60 },
+          global: { lines: 85, statements: 85, functions: 75, branches: 65 },
         }
       : undefined,
 };

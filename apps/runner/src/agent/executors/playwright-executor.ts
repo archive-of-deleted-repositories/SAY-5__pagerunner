@@ -17,6 +17,12 @@ export interface PlaywrightExecutorOptions {
   actionTimeoutMs?: number;
   /** Per-navigation timeout in ms. Default 30s. */
   navigationTimeoutMs?: number;
+  /**
+   * Override the BrowserContext viewport. When set, the executor passes both
+   * the viewport size and a matching `isMobile` flag through to Playwright so
+   * mobile-emulated runs see touch events and a phone user-agent.
+   */
+  viewport?: { width: number; height: number; isMobile?: boolean };
 }
 
 const ACTION_TIMEOUT_DEFAULT = 15_000;
@@ -44,6 +50,7 @@ export class PlaywrightExecutor implements ToolExecutor {
   private readonly launchOptions: LaunchOptions;
   private readonly actionTimeoutMs: number;
   private readonly navigationTimeoutMs: number;
+  private readonly viewport: PlaywrightExecutorOptions['viewport'];
   private readonly consoleBuffer: string[] = [];
   private consoleListener: ((m: ConsoleMessage) => void) | null = null;
 
@@ -53,6 +60,7 @@ export class PlaywrightExecutor implements ToolExecutor {
     this.launchOptions = opts.launchOptions ?? { headless: true };
     this.actionTimeoutMs = opts.actionTimeoutMs ?? ACTION_TIMEOUT_DEFAULT;
     this.navigationTimeoutMs = opts.navigationTimeoutMs ?? NAVIGATION_TIMEOUT_DEFAULT;
+    this.viewport = opts.viewport;
   }
 
   private async ensurePage(): Promise<Page> {
@@ -61,7 +69,15 @@ export class PlaywrightExecutor implements ToolExecutor {
       const { chromium } = await import('playwright');
       this.browser = await chromium.launch(this.launchOptions);
     }
-    this.context = await this.browser.newContext();
+    const contextOpts: Parameters<Browser['newContext']>[0] = {};
+    if (this.viewport) {
+      contextOpts.viewport = { width: this.viewport.width, height: this.viewport.height };
+      if (this.viewport.isMobile) {
+        contextOpts.isMobile = true;
+        contextOpts.hasTouch = true;
+      }
+    }
+    this.context = await this.browser.newContext(contextOpts);
     this.context.setDefaultTimeout(this.actionTimeoutMs);
     this.context.setDefaultNavigationTimeout(this.navigationTimeoutMs);
     const page = await this.context.newPage();

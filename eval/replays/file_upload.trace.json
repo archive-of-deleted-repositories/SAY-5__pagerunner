@@ -1,0 +1,73 @@
+{
+  "runId": "golden_file_upload",
+  "flowId": "file_upload",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/upload",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/upload"
+      },
+      "domAfter": "<html><body>at http://mock.local/upload</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "click",
+      "input": {
+        "selector": "#file-trigger"
+      },
+      "output": {
+        "selector": "#file-trigger",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "wait",
+      "input": {
+        "selector": "#progress[data-state=done]"
+      },
+      "output": {
+        "selector": "#progress[data-state=done]",
+        "ok": true
+      },
+      "domAfter": "<html><body>after wait</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "extract",
+      "input": {
+        "selector": "#file-id",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#file-id",
+        "value": "value-of-#file-id"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

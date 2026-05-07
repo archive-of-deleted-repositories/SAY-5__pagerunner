@@ -1,0 +1,86 @@
+{
+  "runId": "golden_infinite_scroll",
+  "flowId": "infinite_scroll",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/feed",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/feed"
+      },
+      "domAfter": "<html><body>at http://mock.local/feed</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "wait",
+      "input": {
+        "ms": 200
+      },
+      "output": {
+        "selector": "",
+        "ok": true
+      },
+      "domAfter": "<html><body>after wait</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "extract",
+      "input": {
+        "selector": ".card",
+        "multiple": true
+      },
+      "output": {
+        "selector": ".card",
+        "value": "value-of-.card"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "wait",
+      "input": {
+        "ms": 200
+      },
+      "output": {
+        "selector": "",
+        "ok": true
+      },
+      "domAfter": "<html><body>after wait</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "extract",
+      "input": {
+        "selector": ".card[data-target=true]",
+        "multiple": false
+      },
+      "output": {
+        "selector": ".card[data-target=true]",
+        "value": "value-of-.card[data-target=true]"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 5,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

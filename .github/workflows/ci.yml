@@ -114,6 +114,18 @@ jobs:
             --baseline bench/results/2000runs_2026-05-07T20-06-10-959Z.json \
             --runs 50 --threshold 30
 
+  replay-determinism-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.33.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile=false
+      - name: replay every committed golden trace and assert score == 1.0
+        run: pnpm replay:smoke
+
   build-images:
     runs-on: ubuntu-latest
     needs: [lint, typecheck, test, eval-smoke]

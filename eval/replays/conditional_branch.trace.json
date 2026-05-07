@@ -1,0 +1,74 @@
+{
+  "runId": "golden_conditional_branch",
+  "flowId": "conditional_branch",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/profile",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/profile"
+      },
+      "domAfter": "<html><body>at http://mock.local/profile</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "extract",
+      "input": {
+        "selector": "#tier",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#tier",
+        "value": "value-of-#tier"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "#upgrade"
+      },
+      "output": {
+        "selector": "#upgrade",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "extract",
+      "input": {
+        "selector": "#confirmation",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#confirmation",
+        "value": "value-of-#confirmation"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

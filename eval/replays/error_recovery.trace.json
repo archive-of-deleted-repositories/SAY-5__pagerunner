@@ -1,0 +1,61 @@
+{
+  "runId": "golden_error_recovery",
+  "flowId": "error_recovery",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/flaky",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/flaky"
+      },
+      "domAfter": "<html><body>at http://mock.local/flaky</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "click",
+      "input": {
+        "selector": "#flaky"
+      },
+      "output": {
+        "selector": "#flaky",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "extract",
+      "input": {
+        "selector": "#result",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#result",
+        "value": "value-of-#result"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

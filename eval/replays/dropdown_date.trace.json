@@ -1,0 +1,96 @@
+{
+  "runId": "golden_dropdown_date",
+  "flowId": "dropdown_date",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/booking",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/booking"
+      },
+      "domAfter": "<html><body>at http://mock.local/booking</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "click",
+      "input": {
+        "selector": "#country-dropdown"
+      },
+      "output": {
+        "selector": "#country-dropdown",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "li[data-cc=us]"
+      },
+      "output": {
+        "selector": "li[data-cc=us]",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "click",
+      "input": {
+        "selector": "#date"
+      },
+      "output": {
+        "selector": "#date",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "click",
+      "input": {
+        "selector": ".day[data-d=2026-06-15]"
+      },
+      "output": {
+        "selector": ".day[data-d=2026-06-15]",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 5,
+      "tool": "click",
+      "input": {
+        "selector": "#confirm"
+      },
+      "output": {
+        "selector": "#confirm",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 6,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "runId": "golden_login",
+  "flowId": "login",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/login",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/login"
+      },
+      "domAfter": "<html><body>at http://mock.local/login</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "type",
+      "input": {
+        "selector": "#user",
+        "text": "alice",
+        "submit": false
+      },
+      "output": {
+        "selector": "#user",
+        "ok": true
+      },
+      "domAfter": "<html><body>after type</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "type",
+      "input": {
+        "selector": "#pw",
+        "text": "hunter2",
+        "submit": false
+      },
+      "output": {
+        "selector": "#pw",
+        "ok": true
+      },
+      "domAfter": "<html><body>after type</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "click",
+      "input": {
+        "selector": "#submit"
+      },
+      "output": {
+        "selector": "#submit",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "extract",
+      "input": {
+        "selector": "#profile-name",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#profile-name",
+        "value": "value-of-#profile-name"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 5,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

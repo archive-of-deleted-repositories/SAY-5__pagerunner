@@ -1,0 +1,101 @@
+{
+  "runId": "golden_form_validation",
+  "flowId": "form_validation",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/form",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/form"
+      },
+      "domAfter": "<html><body>at http://mock.local/form</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "type",
+      "input": {
+        "selector": "#email",
+        "text": "alice@example.com",
+        "submit": false
+      },
+      "output": {
+        "selector": "#email",
+        "ok": true
+      },
+      "domAfter": "<html><body>after type</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "#next"
+      },
+      "output": {
+        "selector": "#next",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "type",
+      "input": {
+        "selector": "#zip",
+        "text": "94110",
+        "submit": false
+      },
+      "output": {
+        "selector": "#zip",
+        "ok": true
+      },
+      "domAfter": "<html><body>after type</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "click",
+      "input": {
+        "selector": "#submit"
+      },
+      "output": {
+        "selector": "#submit",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 5,
+      "tool": "extract",
+      "input": {
+        "selector": ".success",
+        "multiple": false
+      },
+      "output": {
+        "selector": ".success",
+        "value": "value-of-.success"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 6,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "runId": "golden_search_extract",
+  "flowId": "search_extract",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/search",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/search"
+      },
+      "domAfter": "<html><body>at http://mock.local/search</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "type",
+      "input": {
+        "selector": "#q",
+        "text": "playwright",
+        "submit": false
+      },
+      "output": {
+        "selector": "#q",
+        "ok": true
+      },
+      "domAfter": "<html><body>after type</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "#go"
+      },
+      "output": {
+        "selector": "#go",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "extract",
+      "input": {
+        "selector": ".result:first-child a",
+        "multiple": false
+      },
+      "output": {
+        "selector": ".result:first-child a",
+        "value": "value-of-.result:first-child a"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

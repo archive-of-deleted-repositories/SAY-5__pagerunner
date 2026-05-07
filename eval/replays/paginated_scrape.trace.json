@@ -1,0 +1,99 @@
+{
+  "runId": "golden_paginated_scrape",
+  "flowId": "paginated_scrape",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/list?p=1",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/list?p=1"
+      },
+      "domAfter": "<html><body>at http://mock.local/list?p=1</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "extract",
+      "input": {
+        "selector": ".item",
+        "multiple": true
+      },
+      "output": {
+        "selector": ".item",
+        "value": "value-of-.item"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "a[rel=next]"
+      },
+      "output": {
+        "selector": "a[rel=next]",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "extract",
+      "input": {
+        "selector": ".item",
+        "multiple": true
+      },
+      "output": {
+        "selector": ".item",
+        "value": "value-of-.item"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "click",
+      "input": {
+        "selector": "a[rel=next]"
+      },
+      "output": {
+        "selector": "a[rel=next]",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 5,
+      "tool": "extract",
+      "input": {
+        "selector": ".item",
+        "multiple": true
+      },
+      "output": {
+        "selector": ".item",
+        "value": "value-of-.item"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 6,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

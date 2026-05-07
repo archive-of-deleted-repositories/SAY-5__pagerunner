@@ -20,6 +20,9 @@
     "bench": "tsx bench/bench.ts",
     "bench:cheap": "tsx bench/bench.ts --provider anthropic --model claude-haiku",
     "bench-regress": "tsx bench/bench-regress.ts",
+    "replay": "tsx apps/runner/src/cli/replay.ts",
+    "replay:smoke": "tsx apps/runner/src/cli/replay-smoke.ts",
+    "replay:build-golden": "tsx apps/runner/src/cli/build-golden-traces.ts",
     "migrate": "tsx packages/db/src/migrate.ts",
     "seed": "tsx packages/db/src/seed.ts",
     "prepare": "husky || true"

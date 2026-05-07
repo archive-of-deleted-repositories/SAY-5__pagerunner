@@ -1,0 +1,73 @@
+{
+  "runId": "golden_popup_dismiss",
+  "flowId": "popup_dismiss",
+  "flowVersion": 1,
+  "steps": [
+    {
+      "idx": 0,
+      "tool": "navigate",
+      "input": {
+        "url": "http://mock.local/with-popup",
+        "waitUntil": "load"
+      },
+      "output": {
+        "url": "http://mock.local/with-popup"
+      },
+      "domAfter": "<html><body>at http://mock.local/with-popup</body></html>"
+    },
+    {
+      "idx": 1,
+      "tool": "click",
+      "input": {
+        "selector": "#dismiss-popup"
+      },
+      "output": {
+        "selector": "#dismiss-popup",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 2,
+      "tool": "click",
+      "input": {
+        "selector": "#cta"
+      },
+      "output": {
+        "selector": "#cta",
+        "ok": true
+      },
+      "domAfter": "<html><body>after click</body></html>"
+    },
+    {
+      "idx": 3,
+      "tool": "extract",
+      "input": {
+        "selector": "#headline",
+        "multiple": false
+      },
+      "output": {
+        "selector": "#headline",
+        "value": "value-of-#headline"
+      },
+      "domAfter": "<html><body>extracted</body></html>"
+    },
+    {
+      "idx": 4,
+      "tool": "finish",
+      "input": {
+        "result": {
+          "ok": true
+        },
+        "reason": "done"
+      },
+      "output": {
+        "final": true,
+        "result": {
+          "ok": true
+        }
+      },
+      "domAfter": ""
+    }
+  ]
+}

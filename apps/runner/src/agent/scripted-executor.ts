@@ -7,6 +7,13 @@ import type { ToolExecutor } from './types.js';
  * declared selector resolves successfully. Selectors prefixed with `MISSING:`
  * raise SelectorNotFoundError so the retry policy can be exercised without
  * needing a real browser.
+ *
+ * Outputs are deterministic functions of the tool input — the same call
+ * always produces the same return value. This is what makes the executor
+ * usable as the ground truth in the replay verifier: if the replay
+ * produces an output that disagrees with a recorded trace's output, the
+ * trace was tampered with (or the executor's behaviour drifted, which
+ * the unit tests already pin down).
  */
 export class ScriptedExecutor implements ToolExecutor {
   private readonly visited: string[] = [];

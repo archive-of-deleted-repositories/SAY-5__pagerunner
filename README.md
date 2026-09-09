@@ -165,7 +165,7 @@ Replay a previous run from a captured trace:
 pnpm --filter @pagerunner/runner replay path/to/trace.json
 ```
 
-The replay script reports a `determinism` score in `[0, 1]` based on whether the replayed step sequence matches the recorded tools.
+The replay script reports a `determinism` score in `[0, 1]` based on whether the replayed step sequence matches the recorded tools. The positional trace path and `--trace <path>` are equivalent. Replay uses the captured step count as its bound, so valid traces longer than the default live-run step budget can be verified. It uses a local fake provider with no simulated cost charge; live agent budget defaults remain unchanged.
 
 ## Design targets
 

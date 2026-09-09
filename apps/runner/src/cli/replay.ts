@@ -20,6 +20,7 @@ import type { ToolCall } from '@pagerunner/agent-tools';
  * surfaces as drift.
  *
  * Usage:
+ *   pnpm replay <path/to/trace.json>
  *   pnpm replay --trace <path/to/trace.json>
  *   pnpm replay --run-id <runId>            # reads trace from DB (TODO)
  *
@@ -97,11 +98,18 @@ export async function verifyTrace(trace: RunTrace): Promise<ReplayReport> {
 
   // FakeLLMProvider scripted on (tool, input) per recorded step.
   const script: ToolCall[] = trace.steps.map((s) => ({ tool: s.tool, input: s.input }) as ToolCall);
-  const llm = new FakeLLMProvider(script);
+  // Replay is local and free; simulated live-run cost must not truncate it.
+  const llm = new FakeLLMProvider(script, 0);
   // Deterministic ScriptedExecutor — computes outputs from inputs.
   const executor = new ScriptedExecutor();
 
-  const result = await runAgent({ llm, executor, sleep: async () => undefined });
+  const result = await runAgent({
+    llm,
+    executor,
+    // Bound replay by the captured sequence, independent of live-run defaults.
+    budget: { maxSteps: trace.steps.length },
+    sleep: async () => undefined,
+  });
 
   const drifts: ReplayDriftEntry[] = [];
   const recordedLen = trace.steps.length;
@@ -228,22 +236,44 @@ interface CliArgs {
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const get = (flag: string): string | undefined => {
-    const i = argv.indexOf(flag);
-    return i >= 0 ? argv[i + 1] : undefined;
+  const args: CliArgs = {
+    tracePath: undefined,
+    runId: undefined,
+    reportPath: undefined,
+    noStdout: false,
   };
-  return {
-    tracePath: get('--trace'),
-    runId: get('--run-id'),
-    reportPath: get('--report'),
-    noStdout: argv.includes('--no-stdout'),
-  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--no-stdout') {
+      args.noStdout = true;
+    } else if (arg === '--trace' || arg === '--run-id' || arg === '--report') {
+      const value = argv[++i];
+      if (!value || value.startsWith('-')) throw new Error(`missing value for ${arg}`);
+      const key = arg === '--trace' ? 'tracePath' : arg === '--run-id' ? 'runId' : 'reportPath';
+      if (args[key]) throw new Error(`duplicate ${arg}`);
+      args[key] = value;
+    } else if (arg && !arg.startsWith('-')) {
+      if (args.tracePath) throw new Error('specify only one trace path');
+      args.tracePath = arg;
+    } else {
+      throw new Error(`unknown option: ${arg}`);
+    }
+  }
+  if (args.tracePath && args.runId) throw new Error('choose a trace path or --run-id, not both');
+  return args;
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+  let args: CliArgs;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    console.error('usage: pnpm replay <path> | --trace <path> | --run-id <runId>');
+    process.exit(2);
+  }
   if (!args.tracePath && !args.runId) {
-    console.error('usage: pnpm replay --trace <path> | --run-id <runId>');
+    console.error('usage: pnpm replay <path> | --trace <path> | --run-id <runId>');
     process.exit(2);
   }
   let trace: RunTrace;
